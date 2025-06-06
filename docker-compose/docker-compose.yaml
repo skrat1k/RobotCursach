@@ -1,5 +1,14 @@
 
 services:
+  redis:
+    image: "eqalpha/keydb:x86_64_v5.3.3"
+    container_name: redis
+    command: "keydb-server /etc/keydb/redis.conf --server-threads 2"
+    volumes:
+      - "data:/data"
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
   robotssrvs:
     image: robotsrvs
     container_name: robotsrvsapp
@@ -10,26 +19,14 @@ services:
     - postgres
     - redis
     - rabbitmq
-  controlsrvs:
-    image: controlsrvs
-    container_name: controlapp
-    restart: unless-stopped
-    ports:
-      - "8084:8084"
-    depends_on:
-    - postgres
-    - redis
-    - rabbitmq
-  redis:
-    image: "eqalpha/keydb:x86_64_v5.3.3"
-    container_name: redis
-    command: "keydb-server /etc/keydb/redis.conf --server-threads 2"
-    volumes:
-#      - "./redis.conf:/etc/keydb/redis.conf"
-      - "data:/data"
-    ports:
-      - "6379:6379"
-    restart: unless-stopped
+  prometheus:
+      image: prom/prometheus:v2.44.0
+      container_name: prometheus-archapp-lab4
+      ports:
+         - "9090:9090"
+      volumes:
+         - ../internaldata/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+         - ../internaldata/prometheus/alert_rule.yml:/etc/prometheus/alert_rule.yml
   rabbitmq:
     image: rabbitmq:3-management
     container_name: rabbitmq
@@ -46,14 +43,6 @@ services:
       - ../internaldata/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
     command: >
       bash -c "rabbitmq-plugins enable --offline rabbitmq_prometheus && rabbitmq-server"
-  prometheus:
-      image: prom/prometheus:v2.44.0
-      container_name: prometheus-archapp-lab4
-      ports:
-         - "9090:9090"
-      volumes:
-         - ../internaldata/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml  # кфг
-         - ../internaldata/monitoring/alert_rule.yml:/etc/prometheus/alert_rule.yml  # уведы
   grafana:
     image: grafana/grafana
     ports:
@@ -63,7 +52,7 @@ services:
   alertmanager:
     image: prom/alertmanager
     volumes:
-      - ../internaldata/monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+      - ../internaldata/prometheus/alertmanager.yml:/etc/alertmanager/alertmanager.yml
     ports:
       - "9093:9093"
   postgres:
@@ -78,6 +67,17 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+  controlsrvs:
+    image: controlsrvs
+    container_name: controlapp
+    restart: unless-stopped
+    ports:
+      - "8084:8084"
+    depends_on:
+    - postgres
+    - redis
+    - rabbitmq
+
 volumes:
   data:
     driver: local

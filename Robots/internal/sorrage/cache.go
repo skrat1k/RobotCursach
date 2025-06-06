@@ -1,4 +1,4 @@
-package storage
+package sorrage
 
 import (
 	"RobotService/internal/entities"
@@ -11,30 +11,30 @@ import (
 
 var ctx = context.Background()
 
-type RedisCache struct {
+type RdsCache struct {
 	client *redis.Client
 }
 
-func NewClient(addr string) *RedisCache {
+func NewClient(addr string) *RdsCache {
 	rdb := redis.NewClient(
 		&redis.Options{
 			Addr: addr,
 		})
-	return &RedisCache{client: rdb}
+	return &RdsCache{client: rdb}
 }
 
-func (r *RedisCache) SetRobotData(key string, robotdata entities.Robot, ttl time.Duration) error {
+func (rds *RdsCache) SetRobotData(key string, robotdata entities.Robot, ttl time.Duration) error {
 	pref := "robots:"
 	data, err := json.Marshal(robotdata)
 	if err != nil {
 		return err
 	}
-	return r.client.Set(ctx, pref+key, data, ttl).Err()
+	return rds.client.Set(ctx, pref+key, data, ttl).Err()
 }
 
-func (r *RedisCache) GetRobotData(key string) (*entities.Robot, error) {
+func (rds *RdsCache) GetRobotData(key string) (*entities.Robot, error) {
 	pref := "robots:"
-	data, err := r.client.Get(ctx, pref+key).Result()
+	data, err := rds.client.Get(ctx, pref+key).Result()
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +47,7 @@ func (r *RedisCache) GetRobotData(key string) (*entities.Robot, error) {
 	return &robot, nil
 }
 
-func (r *RedisCache) DeleteRobotData(key string) error {
+func (rds *RdsCache) DeleteRobotData(key string) error {
 	pref := "robots:"
-	return r.client.Del(ctx, pref+key).Err()
+	return rds.client.Del(ctx, pref+key).Err()
 }

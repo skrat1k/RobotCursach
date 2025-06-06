@@ -17,8 +17,7 @@ import (
 	"RobotService/internal/rabbit"
 	"RobotService/internal/repositories"
 	"RobotService/internal/services"
-	"RobotService/internal/storage"
-	logger "RobotService/pkg/Logger"
+	"RobotService/internal/sorrage"
 	"log/slog"
 
 	"github.com/go-chi/chi/v5"
@@ -32,38 +31,40 @@ import (
 )
 
 func main() {
-	log := logger.GetLogger("dev")
+	lgger := slog.New(
+		slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}),
+	)
 
 	// Init metrics
 	prometheusinfo.Register()
 
 	// Setup dependencies
-	db := setupDatabase(log)
+	db := setupDatabase(lgger)
 	defer db.Close(context.Background())
 
-	cache := storage.NewClient("redis:6379")
-	rmq := setupRabbitMQ(log)
+	cache := sorrage.NewClient("redis:6379")
+	rmq := setupRabbitMQ(lgger)
 
 	// Init services
 	repo := repositories.RobotRepositories{DataBase: db}
-	service := services.RobotService{
+	service := services.RbtSrvic{
 		RobotRepository: repo,
 		Redis:           cache,
 		Rabbit:          rmq,
 	}
-	ctrl := handlers.RobotHandlers{RobotService: service}
+	ctrl := handlers.RbtHndler{Srvc: service}
 
 	// Инициализация роутера
 	router := buildRouter(ctrl)
 
-	log.Info("RobotService is running at http://localhost:8083")
+	lgger.Info("RobotService is running at http://localhost:8083")
 	if err := http.ListenAndServe(":8083", router); err != nil {
-		log.Error("Failed to start HTTP server", "error", err.Error())
+		lgger.Error("Failed to start HTTP server", "error", err.Error())
 	}
 }
 
 func setupDatabase(log *slog.Logger) *pgx.Conn {
-	dbURL := storage.MakeURL(storage.ConnectionInfo{
+	dbURL := sorrage.MakeURL(sorrage.ConnectionInfo{
 		Username: "postgres",
 		Password: "admin",
 		Host:     "postgres",
@@ -72,7 +73,7 @@ func setupDatabase(log *slog.Logger) *pgx.Conn {
 		SSLMode:  "disable",
 	})
 
-	conn, err := storage.CreatePostgresConnection(dbURL)
+	conn, err := sorrage.CreatePostgresConnection(dbURL)
 	if err != nil {
 		log.Error("Unable to connect to PostgreSQL", "error", err.Error())
 		os.Exit(1)
@@ -91,7 +92,7 @@ func setupRabbitMQ(log *slog.Logger) *rabbit.Publisher {
 	return publisher
 }
 
-func buildRouter(ctrl handlers.RobotHandlers) *chi.Mux {
+func buildRouter(ctrl handlers.RbtHndler) *chi.Mux {
 	r := chi.NewRouter()
 
 	// Инициализация прометеуса
@@ -103,7 +104,7 @@ func buildRouter(ctrl handlers.RobotHandlers) *chi.Mux {
 	))
 
 	// Регистрация эндпоинтов
-	ctrl.Register(r)
+	ctrl.SetRoute(r)
 
 	return r
 }

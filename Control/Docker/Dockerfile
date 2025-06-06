@@ -2,14 +2,14 @@ FROM golang:latest
 
 WORKDIR /app
 
-# Копируем go.mod и go.sum
+# Копируем зависимости
 COPY ../go.mod ../go.sum ./
 RUN go mod download
 
-# Копируем весь исходный код проекта
+# Копируем исходники
 COPY .. .
 
-# Собираем приложение
-RUN go build -o app ./main.go
+# Билдим
+RUN go build -o app ./cmd/main.go
 
 CMD ["./app"]

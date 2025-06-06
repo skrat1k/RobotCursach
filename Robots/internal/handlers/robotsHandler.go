@@ -5,7 +5,6 @@ import (
 	"RobotService/internal/prometheusinfo"
 	"RobotService/internal/services"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -14,26 +13,17 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-const (
-	CreateRobot     = "/robots/create"
-	GetRobotInfo    = "/robots/{id}"
-	UpdateRobotCord = "/robots/updatecord"
-	UpdateRobotName = "/robots/updatename"
-	UpdateType      = "/robots/updatetype"
-	DeleteRobot     = "/robots/delete/{id}"
-)
-
-type RobotHandlers struct {
-	RobotService services.RobotService
+type RbtHndler struct {
+	Srvc services.RbtSrvic
 }
 
-func (h *RobotHandlers) Register(router *chi.Mux) {
-	router.Post(CreateRobot, h.RobotCreate)
-	router.Get(GetRobotInfo, h.GetRobotInfo)
-	router.Put(UpdateRobotCord, h.UpdateRobotCord)
-	router.Put(UpdateRobotName, h.UpdateRobotName)
-	router.Put(UpdateType, h.ChangeRobotType)
-	router.Delete(DeleteRobot, h.DeleteRobot)
+func (hndler *RbtHndler) SetRoute(router *chi.Mux) {
+	router.Post("/robots/create", hndler.RobotCreate)
+	router.Get("/robots/{id}", hndler.GetRobotInfo)
+	router.Put("/robots/updatecord", hndler.UpdateRobotCord)
+	router.Put("/robots/updatename", hndler.UpdateRobotName)
+	router.Put("/robots/updatetype", hndler.ChangeRobotType)
+	router.Delete("/robots/delete/{id}", hndler.DeleteRobot)
 }
 
 // @Summary Create new robot
@@ -46,19 +36,19 @@ func (h *RobotHandlers) Register(router *chi.Mux) {
 // @Failure 400 {string} string "Invalid JSON"
 // @Failure 500 {string} string "Internal error"
 // @Router /robots/create [post]
-func (h *RobotHandlers) RobotCreate(w http.ResponseWriter, r *http.Request) {
+func (hndlr *RbtHndler) RobotCreate(w http.ResponseWriter, r *http.Request) {
 
 	var createdto dto.CreateRobotDTO
 
 	err := json.NewDecoder(r.Body).Decode(&createdto)
 	if err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		http.Error(w, "проблемы с жсоником", http.StatusBadRequest)
 		return
 	}
 
-	id, err := h.RobotService.CreateRobot(createdto)
+	id, err := hndlr.Srvc.CreateRobot(createdto)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Internal error: %s", err.Error()), http.StatusInternalServerError)
+		http.Error(w, "err", 500)
 	}
 	prometheusinfo.CreatedRobot.Inc()
 	prometheusinfo.CountOfRobotType.WithLabelValues(createdto.Type).Inc()
@@ -67,7 +57,6 @@ func (h *RobotHandlers) RobotCreate(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 	err = json.NewEncoder(w).Encode(id)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to encode JSON: %s", err.Error()), http.StatusInternalServerError)
 		return
 	}
 }
@@ -81,16 +70,16 @@ func (h *RobotHandlers) RobotCreate(w http.ResponseWriter, r *http.Request) {
 // @Failure 400 {string} string "Invalid ID"
 // @Failure 500 {string} string "Internal server error"
 // @Router /robots/{id} [get]
-func (handler *RobotHandlers) GetRobotInfo(w http.ResponseWriter, r *http.Request) {
+func (hndl *RbtHndler) GetRobotInfo(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		http.Error(w, "проблемы с жсоником", 400)
 		return
 	}
 
-	robotinfo, err := handler.RobotService.GetRobotInfo(id)
+	robotinfo, err := hndl.Srvc.GetRobotInfo(id)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to find robot data: %s", err.Error()), http.StatusInternalServerError)
+		http.Error(w, "Error", 500)
 		return
 	}
 
@@ -108,17 +97,15 @@ func (handler *RobotHandlers) GetRobotInfo(w http.ResponseWriter, r *http.Reques
 // @Failure 400 {string} string "Invalid JSON"
 // @Failure 500 {string} string "Failed to update robot cords"
 // @Router /robots/updatecord [put]
-func (h *RobotHandlers) UpdateRobotCord(w http.ResponseWriter, r *http.Request) {
+func (hdlr *RbtHndler) UpdateRobotCord(w http.ResponseWriter, r *http.Request) {
 	newRobotData := dto.UpdateRobotCordDTO{}
 	err := json.NewDecoder(r.Body).Decode(&newRobotData)
 	if err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		http.Error(w, "проблемы с жсоником", 400)
 	}
 
-	err = h.RobotService.UpdateRobotCords(newRobotData)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to update robot cords: %s", err.Error()), http.StatusInternalServerError)
-	}
+	_ = hdlr.Srvc.UpdateRobotCords(newRobotData)
+
 	prometheusinfo.UpdateRobotCords.Inc()
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -132,17 +119,14 @@ func (h *RobotHandlers) UpdateRobotCord(w http.ResponseWriter, r *http.Request) 
 // @Failure 400 {string} string "Invalid JSON"
 // @Failure 500 {string} string "Failed to update robot name"
 // @Router /robots/updatename [put]
-func (h *RobotHandlers) UpdateRobotName(w http.ResponseWriter, r *http.Request) {
+func (handler *RbtHndler) UpdateRobotName(w http.ResponseWriter, r *http.Request) {
 	newRobotData := dto.UpdateRobotNameDTO{}
 	err := json.NewDecoder(r.Body).Decode(&newRobotData)
 	if err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		http.Error(w, "проблемы с жсоником", 400)
 	}
 
-	err = h.RobotService.UpdateRobotName(newRobotData)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to update robot name: %s", err.Error()), http.StatusInternalServerError)
-	}
+	_ = handler.Srvc.UpdateRobotName(newRobotData)
 	prometheusinfo.UpdateRobotNames.Inc()
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -156,17 +140,15 @@ func (h *RobotHandlers) UpdateRobotName(w http.ResponseWriter, r *http.Request) 
 // @Failure 400 {string} string "Invalid JSON"
 // @Failure 500 {string} string "Failed to update robot type"
 // @Router /robots/updatetype [put]
-func (h *RobotHandlers) ChangeRobotType(w http.ResponseWriter, r *http.Request) {
+func (hdler *RbtHndler) ChangeRobotType(w http.ResponseWriter, r *http.Request) {
 	newRobotData := dto.ChangeTypeDTO{}
 	err := json.NewDecoder(r.Body).Decode(&newRobotData)
 	if err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		http.Error(w, "проблемы с жсоником", 400)
 	}
 
-	err = h.RobotService.ChangeRobotType(newRobotData)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to update robot name: %s", err.Error()), http.StatusInternalServerError)
-	}
+	_ = hdler.Srvc.ChangeRobotType(newRobotData)
+
 	prometheusinfo.CountOfRobotType.WithLabelValues(newRobotData.Type).Inc()
 	prometheusinfo.UpdateRobotType.Inc()
 	w.WriteHeader(http.StatusNoContent)
@@ -180,16 +162,15 @@ func (h *RobotHandlers) ChangeRobotType(w http.ResponseWriter, r *http.Request) 
 // @Failure 400 {string} string "Invalid ID"
 // @Failure 500 {string} string "Failed to delete robot"
 // @Router /robots/delete/{id} [delete]
-func (h *RobotHandlers) DeleteRobot(w http.ResponseWriter, r *http.Request) {
+func (hnd *RbtHndler) DeleteRobot(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		http.Error(w, "неверный айди", 400)
 		return
 	}
 
-	err = h.RobotService.DeleteRobot(id)
+	err = hnd.Srvc.DeleteRobot(id)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to delete robot: %s", err.Error()), http.StatusInternalServerError)
 		return
 	}
 	prometheusinfo.DeletedRobot.Inc()

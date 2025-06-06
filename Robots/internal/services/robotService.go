@@ -18,6 +18,7 @@ const (
 	keyget         = "robots.Get"
 	keyupdatecords = "robots.UpdateCord"
 	keyupdatename  = "robots.UpdateName"
+	keyupdatetype  = "robots.UpdateType"
 	keydel         = "robots.Del"
 )
 
@@ -30,6 +31,7 @@ type RobotService struct {
 func (service *RobotService) CreateRobot(dto dto.CreateRobotDTO) (int, error) {
 	robot := entities.Robot{
 		Name:  dto.Name,
+		Type:  dto.Type,
 		XCord: dto.XCord,
 		YCord: dto.YCord,
 		ZCord: dto.ZCord,
@@ -85,6 +87,20 @@ func (service *RobotService) UpdateRobotName(updateData dto.UpdateRobotNameDTO) 
 	_ = service.Redis.DeleteRobotData(strconv.Itoa(robotID))
 	msgToRabbit := fmt.Sprintf("Имя робота с ID: %d было изменены на %s", robotID, newName)
 	service.publishToRabbitWithText(msgToRabbit, keyupdatename)
+	return nil
+}
+
+func (service *RobotService) ChangeRobotType(updateData dto.ChangeTypeDTO) error {
+	newType := updateData.Type
+	robotID := updateData.ID
+	err := service.RobotRepository.ChangeRobotType(robotID, newType)
+	if err != nil {
+		return err
+	}
+	// Удаление кэша после обновления
+	_ = service.Redis.DeleteRobotData(strconv.Itoa(robotID))
+	msgToRabbit := fmt.Sprintf("Тип робота с ID: %d был изменен на %s", robotID, newType)
+	service.publishToRabbitWithText(msgToRabbit, keyupdatetype)
 	return nil
 }
 

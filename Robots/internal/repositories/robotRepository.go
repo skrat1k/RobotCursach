@@ -12,8 +12,8 @@ type RobotRepositories struct {
 }
 
 func (repo *RobotRepositories) CreateRobot(robot entities.Robot) (entities.Robot, error) {
-	query := "INSERT INTO robots (name, xcord, ycord, zcord) VALUES($1, $2, $3, $4) returning id"
-	err := repo.DataBase.QueryRow(context.Background(), query, robot.Name, robot.XCord, robot.YCord, robot.ZCord).Scan(&robot.ID)
+	query := "INSERT INTO robots (name, type, xcord, ycord, zcord) VALUES($1, $2, $3, $4, $5) returning id"
+	err := repo.DataBase.QueryRow(context.Background(), query, robot.Name, robot.Type, robot.XCord, robot.YCord, robot.ZCord).Scan(&robot.ID)
 	if err != nil {
 		return robot, err
 	}
@@ -22,8 +22,8 @@ func (repo *RobotRepositories) CreateRobot(robot entities.Robot) (entities.Robot
 
 func (repo *RobotRepositories) GetRobotInfo(id int) (*entities.Robot, error) {
 	robot := &entities.Robot{ID: id}
-	query := "SELECT name, xcord, ycord, zcord FROM robots WHERE id = $1"
-	err := repo.DataBase.QueryRow(context.Background(), query, id).Scan(&robot.Name, &robot.XCord, &robot.YCord, &robot.ZCord)
+	query := "SELECT name, type, xcord, ycord, zcord FROM robots WHERE id = $1"
+	err := repo.DataBase.QueryRow(context.Background(), query, id).Scan(&robot.Name, &robot.Type, &robot.XCord, &robot.YCord, &robot.ZCord)
 	if err != nil {
 		return nil, err
 	}
@@ -42,6 +42,15 @@ func (repo *RobotRepositories) UpdateRobotCords(id int, newCords entities.RobotC
 func (repo *RobotRepositories) UpdateRobotName(id int, newName string) error {
 	query := "UPDATE robots SET name = $1 WHERE id = $2"
 	_, err := repo.DataBase.Exec(context.Background(), query, newName, id)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *RobotRepositories) ChangeRobotType(id int, newType string) error {
+	query := "UPDATE robots SET type = $1 WHERE id = $2"
+	_, err := repo.DataBase.Exec(context.Background(), query, newType, id)
 	if err != nil {
 		return err
 	}

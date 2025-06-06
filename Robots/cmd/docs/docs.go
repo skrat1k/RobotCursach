@@ -185,6 +185,49 @@ const docTemplate = `{
                 }
             }
         },
+        "/robots/updatetype": {
+            "put": {
+                "description": "Update robot name by ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "robots"
+                ],
+                "summary": "Update robot type",
+                "parameters": [
+                    {
+                        "description": "Updated type",
+                        "name": "robot",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.ChangeTypeDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid JSON",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to update robot type",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/robots/{id}": {
             "get": {
                 "description": "Get detailed robot info by ID",
@@ -228,10 +271,24 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "dto.ChangeTypeDTO": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.CreateRobotDTO": {
             "type": "object",
             "properties": {
                 "name": {
+                    "type": "string"
+                },
+                "type": {
                     "type": "string"
                 },
                 "xCord": {
@@ -280,6 +337,9 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "name": {
+                    "type": "string"
+                },
+                "type": {
                     "type": "string"
                 },
                 "xCord": {

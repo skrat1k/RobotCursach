@@ -33,6 +33,13 @@ var (
 		},
 	)
 
+	UpdateRobotType = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: "robot_updatetype_total",
+			Help: "Количество обновлений типов роботов",
+		},
+	)
+
 	DeletedRobot = prometheus.NewCounter(
 		prometheus.CounterOpts{
 			Name: "robot_deleted_total",
@@ -48,6 +55,14 @@ var (
 		},
 		[]string{"method", "handler", "status"},
 	)
+
+	CountOfRobotType = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "robot_types_total",
+			Help: "Типы созданных роботов",
+		},
+		[]string{"robot_type"},
+	)
 )
 
 func Register() {
@@ -55,7 +70,9 @@ func Register() {
 	prometheus.MustRegister(GetRobot)
 	prometheus.MustRegister(UpdateRobotCords)
 	prometheus.MustRegister(UpdateRobotNames)
+	prometheus.MustRegister(UpdateRobotType)
 	prometheus.MustRegister(DeletedRobot)
+	prometheus.MustRegister(CountOfRobotType)
 
 	prometheus.MustRegister(RequestDuration)
 }

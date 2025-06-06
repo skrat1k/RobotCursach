@@ -1,8 +1,17 @@
 basePath: /
 definitions:
+  dto.ChangeTypeDTO:
+    properties:
+      id:
+        type: integer
+      type:
+        type: string
+    type: object
   dto.CreateRobotDTO:
     properties:
       name:
+        type: string
+      type:
         type: string
       xCord:
         type: integer
@@ -34,6 +43,8 @@ definitions:
       id:
         type: integer
       name:
+        type: string
+      type:
         type: string
       xCord:
         type: integer
@@ -185,6 +196,34 @@ paths:
           schema:
             type: string
       summary: Update robot name
+      tags:
+      - robots
+  /robots/updatetype:
+    put:
+      consumes:
+      - application/json
+      description: Update robot name by ID
+      parameters:
+      - description: Updated type
+        in: body
+        name: robot
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ChangeTypeDTO'
+      responses:
+        "204":
+          description: No Content
+          schema:
+            type: string
+        "400":
+          description: Invalid JSON
+          schema:
+            type: string
+        "500":
+          description: Failed to update robot type
+          schema:
+            type: string
+      summary: Update robot type
       tags:
       - robots
 schemes:

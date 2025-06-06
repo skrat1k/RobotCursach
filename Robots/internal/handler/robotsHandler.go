@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"time"
 
 	_ "RobotService/cmd/docs" // импорт сгенерированных Swagger-доков
 
@@ -20,6 +19,7 @@ const (
 	GetRobotInfo    = "/robots/{id}"
 	UpdateRobotCord = "/robots/updatecord"
 	UpdateRobotName = "/robots/updatename"
+	UpdateType      = "/robots/updatetype"
 	DeleteRobot     = "/robots/delete/{id}"
 )
 
@@ -32,6 +32,7 @@ func (h *RobotHandlers) Register(router *chi.Mux) {
 	router.Get(GetRobotInfo, h.GetRobotInfo)
 	router.Put(UpdateRobotCord, h.UpdateRobotCord)
 	router.Put(UpdateRobotName, h.UpdateRobotName)
+	router.Put(UpdateType, h.ChangeRobotType)
 	router.Delete(DeleteRobot, h.DeleteRobot)
 }
 
@@ -46,34 +47,26 @@ func (h *RobotHandlers) Register(router *chi.Mux) {
 // @Failure 500 {string} string "Internal error"
 // @Router /robots/create [post]
 func (h *RobotHandlers) RobotCreate(w http.ResponseWriter, r *http.Request) {
-	start := time.Now()
-	status := "201"
-	defer func() {
-		duration := time.Since(start).Seconds()
-		metrics.RequestDuration.WithLabelValues("POST", "/expenses", status).Observe(duration)
-	}()
 
 	var createdto dto.CreateRobotDTO
 
 	err := json.NewDecoder(r.Body).Decode(&createdto)
 	if err != nil {
-		status = "400"
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
 	id, err := h.RobotService.CreateRobot(createdto)
 	if err != nil {
-		status = "500"
 		http.Error(w, fmt.Sprintf("Internal error: %s", err.Error()), http.StatusInternalServerError)
 	}
 	metrics.CreatedRobot.Inc()
+	metrics.CountOfRobotType.WithLabelValues(createdto.Type).Inc()
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	err = json.NewEncoder(w).Encode(id)
 	if err != nil {
-		status = "500"
 		http.Error(w, fmt.Sprintf("Failed to encode JSON: %s", err.Error()), http.StatusInternalServerError)
 		return
 	}
@@ -89,23 +82,14 @@ func (h *RobotHandlers) RobotCreate(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {string} string "Internal server error"
 // @Router /robots/{id} [get]
 func (handler *RobotHandlers) GetRobotInfo(w http.ResponseWriter, r *http.Request) {
-	start := time.Now()
-	status := "200"
-	defer func() {
-		duration := time.Since(start).Seconds()
-		metrics.RequestDuration.WithLabelValues("GET", "/expenses/{id}", status).Observe(duration)
-	}()
-
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
-		status = "400"
 		http.Error(w, "Invalid ID", http.StatusBadRequest)
 		return
 	}
 
 	robotinfo, err := handler.RobotService.GetRobotInfo(id)
 	if err != nil {
-		status = "500"
 		http.Error(w, fmt.Sprintf("Failed to find robot data: %s", err.Error()), http.StatusInternalServerError)
 		return
 	}
@@ -125,13 +109,6 @@ func (handler *RobotHandlers) GetRobotInfo(w http.ResponseWriter, r *http.Reques
 // @Failure 500 {string} string "Failed to update robot cords"
 // @Router /robots/updatecord [put]
 func (h *RobotHandlers) UpdateRobotCord(w http.ResponseWriter, r *http.Request) {
-	start := time.Now()
-	status := "200"
-	defer func() {
-		duration := time.Since(start).Seconds()
-		metrics.RequestDuration.WithLabelValues("GET", "/expenses", status).Observe(duration)
-	}()
-
 	newRobotData := dto.UpdateRobotCordDTO{}
 	err := json.NewDecoder(r.Body).Decode(&newRobotData)
 	if err != nil {
@@ -156,13 +133,6 @@ func (h *RobotHandlers) UpdateRobotCord(w http.ResponseWriter, r *http.Request) 
 // @Failure 500 {string} string "Failed to update robot name"
 // @Router /robots/updatename [put]
 func (h *RobotHandlers) UpdateRobotName(w http.ResponseWriter, r *http.Request) {
-	start := time.Now()
-	status := "200"
-	defer func() {
-		duration := time.Since(start).Seconds()
-		metrics.RequestDuration.WithLabelValues("GET", "/expenses", status).Observe(duration)
-	}()
-
 	newRobotData := dto.UpdateRobotNameDTO{}
 	err := json.NewDecoder(r.Body).Decode(&newRobotData)
 	if err != nil {
@@ -174,6 +144,31 @@ func (h *RobotHandlers) UpdateRobotName(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, fmt.Sprintf("Failed to update robot name: %s", err.Error()), http.StatusInternalServerError)
 	}
 	metrics.UpdateRobotNames.Inc()
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// @Summary Update robot type
+// @Description Update robot name by ID
+// @Tags robots
+// @Accept json
+// @Param robot body dto.ChangeTypeDTO true "Updated type"
+// @Success 204 {string} string "No Content"
+// @Failure 400 {string} string "Invalid JSON"
+// @Failure 500 {string} string "Failed to update robot type"
+// @Router /robots/updatetype [put]
+func (h *RobotHandlers) ChangeRobotType(w http.ResponseWriter, r *http.Request) {
+	newRobotData := dto.ChangeTypeDTO{}
+	err := json.NewDecoder(r.Body).Decode(&newRobotData)
+	if err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+	}
+
+	err = h.RobotService.ChangeRobotType(newRobotData)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to update robot name: %s", err.Error()), http.StatusInternalServerError)
+	}
+	metrics.CountOfRobotType.WithLabelValues(newRobotData.Type).Inc()
+	metrics.UpdateRobotType.Inc()
 	w.WriteHeader(http.StatusNoContent)
 }
 

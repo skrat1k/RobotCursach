@@ -20,6 +20,7 @@ const (
 	exchangeName = "robots"
 )
 
+// Обяъвляем список биндов очередей с роут кеями
 var queueBindings = []struct {
 	QueueName  string
 	RoutingKey string
@@ -31,7 +32,29 @@ var queueBindings = []struct {
 	{"robot_delete_queue", "robots.Del"},
 }
 
+// Обёртка над логгером для обработки сообщений
+func AddQueue(robot Robot, queueName string) {
+	log.Printf("[%s] ADD Robot: ID=%d, Name=%s", queueName, robot.ID, robot.Name)
+}
+
+func GetQueue(robot Robot, queueName string) {
+	log.Printf("[%s] GET Robot : ID:%d, Nname:%s. Coordinates: X=%d, Y=%d, Z=%d", queueName, robot.ID, robot.Name, robot.XCord, robot.YCord, robot.ZCord)
+}
+
+func UpdateCordQueue(msg string, queueName string) {
+	log.Printf("[%s] %s", queueName, msg)
+}
+
+func UpdateNameQueue(msg string, queueName string) {
+	log.Printf("[%s] %s", queueName, msg)
+}
+
+func DeleteQueue(msg string, queueName string) {
+	log.Printf("[%s] %s", queueName, msg)
+}
+
 func main() {
+	// Коннектимся к реббиту по урлу
 	conn, err := amqp.Dial(rabbitURL)
 	if err != nil {
 		log.Fatal("Cannot connect to rabbit", err)
@@ -44,6 +67,7 @@ func main() {
 	}
 	defer ch.Close()
 
+	// Создаём обменник, если прошлый сервер этого не сделал
 	err = ch.ExchangeDeclare(
 		exchangeName,
 		"direct",
@@ -57,6 +81,7 @@ func main() {
 		log.Fatal("Error create exchange", err)
 	}
 
+	// Биндим очереди с ключами
 	for _, binding := range queueBindings {
 
 		q, err := ch.QueueDeclare(
@@ -97,19 +122,23 @@ func main() {
 
 		log.Println("NotificationService listening queue", q.Name)
 
+		// На каждую очередь запускаем свою отдельную горутину, чтобы они могли работать и обрабатывать запросы параллельно
 		go func(queueName string, messages <-chan amqp.Delivery) {
 			for d := range messages {
 				var robot Robot
 				var msg string
 				switch d.ContentType {
+				// Если пришёл джесончик, то записываем его в переменную
 				case "application/json":
 					if err := json.Unmarshal(d.Body, &robot); err != nil {
 						log.Printf("[%s] JSON unmarshal error: %v", queueName, err)
 						continue
 					}
+				// Если пришел не жсончик, то просто делаем текстовю переменную
 				case "text/plain":
 					msg = string(d.Body)
 				}
+				// общая логика обработки сообщений для всех горутин, просто через свич кейс выбирает метод обработки по названию очереди
 				switch queueName {
 				case "robot_add_queue":
 					log.Printf("[%s] ADD Robot: ID=%d, Name=%s", queueName, robot.ID, robot.Name)
@@ -129,24 +158,4 @@ func main() {
 	}
 	forever := make(chan bool)
 	<-forever
-}
-
-func AddQueue(robot Robot, queueName string) {
-	log.Printf("[%s] ADD Robot: ID=%d, Name=%s", queueName, robot.ID, robot.Name)
-}
-
-func GetQueue(robot Robot, queueName string) {
-	log.Printf("[%s] GET Robot : ID:%d, Nname:%s. Coordinates: X=%d, Y=%d, Z=%d", queueName, robot.ID, robot.Name, robot.XCord, robot.YCord, robot.ZCord)
-}
-
-func UpdateCordQueue(msg string, queueName string) {
-	log.Printf("[%s] %s", queueName, msg)
-}
-
-func UpdateNameQueue(msg string, queueName string) {
-	log.Printf("[%s] %s", queueName, msg)
-}
-
-func DeleteQueue(msg string, queueName string) {
-	log.Printf("[%s] %s", queueName, msg)
 }

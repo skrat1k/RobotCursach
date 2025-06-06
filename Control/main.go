@@ -16,7 +16,7 @@ type Robot struct {
 }
 
 const (
-	rabbitURL    = "amqp://guest:guest@localhost:5672/"
+	rabbitURL    = "amqp://guest:guest@rabbitmq:5672/"
 	exchangeName = "robots"
 )
 

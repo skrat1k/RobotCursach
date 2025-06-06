@@ -18,6 +18,7 @@ type Publisher struct {
 	channel *amqp.Channel
 }
 
+// Создаём паблишера и сразу объявляем эксчендж
 func NewPublisher(amqpURL string) (*Publisher, error) {
 	conn, err := amqp.Dial(amqpURL)
 	if err != nil {
@@ -37,11 +38,13 @@ func NewPublisher(amqpURL string) (*Publisher, error) {
 	return &Publisher{conn: conn, channel: ch}, nil
 }
 
+// Закрываем соединение с реббитом при выходе из программы
 func (p *Publisher) Close() {
 	_ = p.channel.Close()
 	_ = p.conn.Close()
 }
 
+// Отправка сообщений в реббит со структурой робота
 func (p *Publisher) Publish(robot *entities.Robot, routingKey string) error {
 	body, _ := json.Marshal(robot)
 
@@ -58,6 +61,7 @@ func (p *Publisher) Publish(robot *entities.Robot, routingKey string) error {
 	)
 }
 
+// Отправка сообщений в реббит с текстом
 func (p *Publisher) PublishWithText(message string, routingKey string) error {
 	log.Printf("Отправка сообщения в рэббит по routing key: %s", routingKey)
 	return p.channel.Publish(

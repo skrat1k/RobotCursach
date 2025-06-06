@@ -1,8 +1,8 @@
-package handler
+package handlers
 
 import (
 	"RobotService/internal/dto"
-	"RobotService/internal/metrics"
+	"RobotService/internal/prometheusinfo"
 	"RobotService/internal/services"
 	"encoding/json"
 	"fmt"
@@ -60,8 +60,8 @@ func (h *RobotHandlers) RobotCreate(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Internal error: %s", err.Error()), http.StatusInternalServerError)
 	}
-	metrics.CreatedRobot.Inc()
-	metrics.CountOfRobotType.WithLabelValues(createdto.Type).Inc()
+	prometheusinfo.CreatedRobot.Inc()
+	prometheusinfo.CountOfRobotType.WithLabelValues(createdto.Type).Inc()
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
@@ -94,7 +94,7 @@ func (handler *RobotHandlers) GetRobotInfo(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	metrics.GetRobot.Inc()
+	prometheusinfo.GetRobot.Inc()
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(robotinfo)
 }
@@ -119,7 +119,7 @@ func (h *RobotHandlers) UpdateRobotCord(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Failed to update robot cords: %s", err.Error()), http.StatusInternalServerError)
 	}
-	metrics.UpdateRobotCords.Inc()
+	prometheusinfo.UpdateRobotCords.Inc()
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -143,7 +143,7 @@ func (h *RobotHandlers) UpdateRobotName(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Failed to update robot name: %s", err.Error()), http.StatusInternalServerError)
 	}
-	metrics.UpdateRobotNames.Inc()
+	prometheusinfo.UpdateRobotNames.Inc()
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -167,8 +167,8 @@ func (h *RobotHandlers) ChangeRobotType(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Failed to update robot name: %s", err.Error()), http.StatusInternalServerError)
 	}
-	metrics.CountOfRobotType.WithLabelValues(newRobotData.Type).Inc()
-	metrics.UpdateRobotType.Inc()
+	prometheusinfo.CountOfRobotType.WithLabelValues(newRobotData.Type).Inc()
+	prometheusinfo.UpdateRobotType.Inc()
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -192,6 +192,6 @@ func (h *RobotHandlers) DeleteRobot(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf("Failed to delete robot: %s", err.Error()), http.StatusInternalServerError)
 		return
 	}
-	metrics.DeletedRobot.Inc()
+	prometheusinfo.DeletedRobot.Inc()
 	w.WriteHeader(http.StatusNoContent)
 }

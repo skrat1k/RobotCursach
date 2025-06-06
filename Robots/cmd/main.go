@@ -8,78 +8,102 @@
 package main
 
 import (
-	"RobotService/internal/handler"
-	"RobotService/internal/metrics"
+	"context"
+	"net/http"
+	"os"
+
+	"RobotService/internal/handlers"
+	"RobotService/internal/prometheusinfo"
 	"RobotService/internal/rabbit"
 	"RobotService/internal/repositories"
 	"RobotService/internal/services"
 	"RobotService/internal/storage"
 	logger "RobotService/pkg/Logger"
-	"context"
 	"log/slog"
-	"net/http"
-	"os"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
-	_ "RobotService/cmd/docs" // импорт сгенерированных Swagger-доков
+	// Отсюда сваггер подсасывает данные для себя
+	_ "RobotService/cmd/docs"
 
-	httpSwagger "github.com/swaggo/http-swagger" // swagger UI
+	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 func main() {
 	log := logger.GetLogger("dev")
 
-	metrics.Register()
+	// Init metrics
+	prometheusinfo.Register()
 
-	psqlConnectionUrl := storage.MakeURL(storage.ConnectionInfo{
+	// Setup dependencies
+	db := setupDatabase(log)
+	defer db.Close(context.Background())
+
+	cache := storage.NewClient("redis:6379")
+	rmq := setupRabbitMQ(log)
+
+	// Init services
+	repo := repositories.RobotRepositories{DataBase: db}
+	service := services.RobotService{
+		RobotRepository: repo,
+		Redis:           cache,
+		Rabbit:          rmq,
+	}
+	ctrl := handlers.RobotHandlers{RobotService: service}
+
+	// Инициализация роутера
+	router := buildRouter(ctrl)
+
+	log.Info("RobotService is running at http://localhost:8083")
+	if err := http.ListenAndServe(":8083", router); err != nil {
+		log.Error("Failed to start HTTP server", "error", err.Error())
+	}
+}
+
+func setupDatabase(log *slog.Logger) *pgx.Conn {
+	dbURL := storage.MakeURL(storage.ConnectionInfo{
 		Username: "postgres",
 		Password: "admin",
-		Host:     "localhost",
+		Host:     "postgres",
 		Port:     "5432",
 		DBName:   "robotdatabase",
 		SSLMode:  "disable",
 	})
 
-	conn, err := storage.CreatePostgresConnection(psqlConnectionUrl)
-
+	conn, err := storage.CreatePostgresConnection(dbURL)
 	if err != nil {
-		log.Error("Connection error", slog.String("error", err.Error()))
+		log.Error("Unable to connect to PostgreSQL", "error", err.Error())
 		os.Exit(1)
 	}
 
-	defer conn.Close(context.Background())
+	log.Info("Connected to PostgreSQL")
+	return conn
+}
 
-	redis := storage.NewClient("localhost:6379")
-
-	log.Info("Success connect to database")
-
-	rabbitPublisher, err := rabbit.NewPublisher("amqp://guest:guest@localhost:5672/")
+func setupRabbitMQ(log *slog.Logger) *rabbit.Publisher {
+	publisher, err := rabbit.NewPublisher("amqp://guest:guest@rabbitmq:5672/")
 	if err != nil {
-		log.Error("Failed connected to rabbitmq", slog.String("error", err.Error()))
+		log.Error("Unable to connect to RabbitMQ", "error", err.Error())
 		os.Exit(1)
 	}
+	return publisher
+}
 
-	router := chi.NewRouter()
-	router.Handle("/metrics", promhttp.Handler())
+func buildRouter(ctrl handlers.RobotHandlers) *chi.Mux {
+	r := chi.NewRouter()
 
-	// Swagger docs route
-	router.Get("/swagger/*", httpSwagger.Handler(
+	// Инициализация прометеуса
+	r.Handle("/metrics", promhttp.Handler())
+
+	// Инициализация сваггера
+	r.Get("/swagger/*", httpSwagger.Handler(
 		httpSwagger.URL("http://localhost:8083/swagger/doc.json"),
 	))
 
-	expenseRepo := repositories.RobotRepositories{DataBase: conn}
-	expenseService := services.RobotService{RobotRepository: expenseRepo, Redis: redis, Rabbit: rabbitPublisher}
-	expenseHandler := handler.RobotHandlers{RobotService: expenseService}
-	expenseHandler.Register(router)
+	// Регистрация эндпоинтов
+	ctrl.Register(r)
 
-	log.Info("Server starting...")
-
-	serverPort := ":8083"
-
-	err = http.ListenAndServe(serverPort, router)
-	if err != nil {
-		log.Error("Starting server error", slog.String("error", err.Error()))
-	}
+	return r
 }

@@ -107,15 +107,18 @@ func (service *RobotService) ChangeRobotType(updateData dto.ChangeTypeDTO) error
 func (service *RobotService) DeleteRobot(id int) error {
 	msgToRabbit := fmt.Sprintf("Робота с ID: %d был уничтожен. Помянем...", id)
 	service.publishToRabbitWithText(msgToRabbit, keydel)
+	_ = service.Redis.DeleteRobotData(strconv.Itoa(id))
 	return service.RobotRepository.DeleteRobot(id)
 }
 
+// Отправка в реббит сообщения со струтурой робота
 func (s *RobotService) publishToRabbitWithStruct(robot *entities.Robot, routingKey string) {
 	if err := s.Rabbit.Publish(robot, routingKey); err != nil {
 		log.Println("Не получилось отправить, сорян")
 	}
 }
 
+// Отправка в реббит сообщения с текстом
 func (s *RobotService) publishToRabbitWithText(msg string, routingKey string) {
 	if err := s.Rabbit.PublishWithText(msg, routingKey); err != nil {
 		log.Println("Не получилось отправить, сорян")

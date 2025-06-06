@@ -1,8 +1,28 @@
 
 services:
-  keydb:
+  robotssrvs:
+    image: robotsrvs
+    container_name: robotsrvsapp
+    restart: unless-stopped
+    ports:
+      - "8083:8083"
+    depends_on:
+    - postgres
+    - redis
+    - rabbitmq
+  controlsrvs:
+    image: controlsrvs
+    container_name: controlapp
+    restart: unless-stopped
+    ports:
+      - "8084:8084"
+    depends_on:
+    - postgres
+    - redis
+    - rabbitmq
+  redis:
     image: "eqalpha/keydb:x86_64_v5.3.3"
-    container_name: keydb
+    container_name: redis
     command: "keydb-server /etc/keydb/redis.conf --server-threads 2"
     volumes:
 #      - "./redis.conf:/etc/keydb/redis.conf"
@@ -22,28 +42,28 @@ services:
       RABBITMQ_DEFAULT_PASS: guest
       RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: "-rabbitmq_prometheus true"
     volumes:
-      - ./rabbitmq-data:/var/lib/rabbitmq
-      - ./rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
+      - ../internaldata/rabbitmq-data:/var/lib/rabbitmq
+      - ../internaldata/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
     command: >
       bash -c "rabbitmq-plugins enable --offline rabbitmq_prometheus && rabbitmq-server"
   prometheus:
       image: prom/prometheus:v2.44.0
       container_name: prometheus-archapp-lab4
       ports:
-         - "9090:9090"   # Prometheus web UI
+         - "9090:9090"
       volumes:
-         - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml  # Конфигурационный файл
-         - ./monitoring/alert_rule.yml:/etc/prometheus/alert_rule.yml  # Файл с алертами
+         - ../internaldata/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml  # кфг
+         - ../internaldata/monitoring/alert_rule.yml:/etc/prometheus/alert_rule.yml  # уведы
   grafana:
     image: grafana/grafana
     ports:
       - "3000:3000"
     volumes:
-      - ./grafana-data:/var/lib/grafana
+      - ../internaldata/grafana-data:/var/lib/grafana
   alertmanager:
     image: prom/alertmanager
     volumes:
-      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+      - ../internaldata/monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml
     ports:
       - "9093:9093"
   postgres:

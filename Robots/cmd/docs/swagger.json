@@ -1,0 +1,294 @@
+{
+    "schemes": [
+        "http"
+    ],
+    "swagger": "2.0",
+    "info": {
+        "description": "API for managing robots in the RobotService system.",
+        "title": "RobotService API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "host": "localhost:8083",
+    "basePath": "/",
+    "paths": {
+        "/robots/create": {
+            "post": {
+                "description": "Create a new robot with name and coordinates",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "robots"
+                ],
+                "summary": "Create new robot",
+                "parameters": [
+                    {
+                        "description": "Robot info",
+                        "name": "robot",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.CreateRobotDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Robot ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid JSON",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/robots/delete/{id}": {
+            "delete": {
+                "description": "Delete robot by ID",
+                "tags": [
+                    "robots"
+                ],
+                "summary": "Delete robot",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Robot ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid ID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to delete robot",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/robots/updatecord": {
+            "put": {
+                "description": "Update x/y coordinates of a robot",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "robots"
+                ],
+                "summary": "Update robot coordinates",
+                "parameters": [
+                    {
+                        "description": "Updated coordinates",
+                        "name": "robot",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateRobotCordDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid JSON",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to update robot cords",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/robots/updatename": {
+            "put": {
+                "description": "Update robot name by ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "robots"
+                ],
+                "summary": "Update robot name",
+                "parameters": [
+                    {
+                        "description": "Updated name",
+                        "name": "robot",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateRobotNameDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid JSON",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to update robot name",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/robots/{id}": {
+            "get": {
+                "description": "Get detailed robot info by ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "robots"
+                ],
+                "summary": "Get robot info",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Robot ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/entities.Robot"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid ID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "dto.CreateRobotDTO": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "xCord": {
+                    "type": "integer"
+                },
+                "yCord": {
+                    "type": "integer"
+                },
+                "zCord": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.UpdateRobotCordDTO": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "xCord": {
+                    "type": "integer"
+                },
+                "yCord": {
+                    "type": "integer"
+                },
+                "zCord": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.UpdateRobotNameDTO": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "entities.Robot": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "xCord": {
+                    "type": "integer"
+                },
+                "yCord": {
+                    "type": "integer"
+                },
+                "zCord": {
+                    "type": "integer"
+                }
+            }
+        }
+    }
+}

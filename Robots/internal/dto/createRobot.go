@@ -1,0 +1,8 @@
+package dto
+
+type CreateRobotDTO struct {
+	Name  string `json:"name"`
+	XCord int    `json:"xCord"`
+	YCord int    `json:"yCord"`
+	ZCord int    `json:"zCord"`
+}

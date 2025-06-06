@@ -1,0 +1,192 @@
+basePath: /
+definitions:
+  dto.CreateRobotDTO:
+    properties:
+      name:
+        type: string
+      xCord:
+        type: integer
+      yCord:
+        type: integer
+      zCord:
+        type: integer
+    type: object
+  dto.UpdateRobotCordDTO:
+    properties:
+      id:
+        type: integer
+      xCord:
+        type: integer
+      yCord:
+        type: integer
+      zCord:
+        type: integer
+    type: object
+  dto.UpdateRobotNameDTO:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  entities.Robot:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      xCord:
+        type: integer
+      yCord:
+        type: integer
+      zCord:
+        type: integer
+    type: object
+host: localhost:8083
+info:
+  contact: {}
+  description: API for managing robots in the RobotService system.
+  title: RobotService API
+  version: "1.0"
+paths:
+  /robots/{id}:
+    get:
+      description: Get detailed robot info by ID
+      parameters:
+      - description: Robot ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entities.Robot'
+        "400":
+          description: Invalid ID
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Get robot info
+      tags:
+      - robots
+  /robots/create:
+    post:
+      consumes:
+      - application/json
+      description: Create a new robot with name and coordinates
+      parameters:
+      - description: Robot info
+        in: body
+        name: robot
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateRobotDTO'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Robot ID
+          schema:
+            type: integer
+        "400":
+          description: Invalid JSON
+          schema:
+            type: string
+        "500":
+          description: Internal error
+          schema:
+            type: string
+      summary: Create new robot
+      tags:
+      - robots
+  /robots/delete/{id}:
+    delete:
+      description: Delete robot by ID
+      parameters:
+      - description: Robot ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: No Content
+          schema:
+            type: string
+        "400":
+          description: Invalid ID
+          schema:
+            type: string
+        "500":
+          description: Failed to delete robot
+          schema:
+            type: string
+      summary: Delete robot
+      tags:
+      - robots
+  /robots/updatecord:
+    put:
+      consumes:
+      - application/json
+      description: Update x/y coordinates of a robot
+      parameters:
+      - description: Updated coordinates
+        in: body
+        name: robot
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateRobotCordDTO'
+      responses:
+        "204":
+          description: No Content
+          schema:
+            type: string
+        "400":
+          description: Invalid JSON
+          schema:
+            type: string
+        "500":
+          description: Failed to update robot cords
+          schema:
+            type: string
+      summary: Update robot coordinates
+      tags:
+      - robots
+  /robots/updatename:
+    put:
+      consumes:
+      - application/json
+      description: Update robot name by ID
+      parameters:
+      - description: Updated name
+        in: body
+        name: robot
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateRobotNameDTO'
+      responses:
+        "204":
+          description: No Content
+          schema:
+            type: string
+        "400":
+          description: Invalid JSON
+          schema:
+            type: string
+        "500":
+          description: Failed to update robot name
+          schema:
+            type: string
+      summary: Update robot name
+      tags:
+      - robots
+schemes:
+- http
+swagger: "2.0"
